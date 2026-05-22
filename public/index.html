@@ -48,16 +48,6 @@
             50% { transform: translateY(-10px); }
         }
 
-        @keyframes pulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
         h1 {
             color: #333;
             margin-bottom: 20px;
@@ -98,12 +88,6 @@
             color: #E85D75;
         }
 
-        .message {
-            font-size: 18px;
-            color: #666;
-            margin: 20px 0;
-        }
-
         .reset-btn {
             background: #667eea;
             color: white;
@@ -136,6 +120,11 @@
             margin: 0 auto;
         }
 
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
         .error {
             background: #ff4757;
             color: white;
@@ -145,21 +134,21 @@
             display: none;
         }
 
-        .update-badge {
-            background: #28a745;
-            color: white;
-            padding: 5px 10px;
+        .connection-status {
+            background: #f8f9fa;
+            padding: 8px;
             border-radius: 20px;
             font-size: 12px;
-            display: inline-block;
-            margin-top: 10px;
-            animation: pulse 1s infinite;
+            margin-top: 15px;
+            color: #666;
         }
 
-        .counter {
-            font-size: 14px;
-            color: #999;
-            margin-top: 15px;
+        .connected {
+            color: #28a745;
+        }
+
+        .disconnected {
+            color: #dc3545;
         }
     </style>
 </head>
@@ -179,61 +168,98 @@
 
         <button class="reset-btn" onclick="resetChoice()">🔄 اختيار مرة أخرى</button>
         
-        <div class="counter" id="counter">
-            تحديث تلقائي كل 3 ثواني ⏱️
+        <div class="connection-status" id="connectionStatus">
+            <span id="statusText">جاري الاتصال...</span>
         </div>
     </div>
 
     <script>
-        let intervalId = null;
-        let currentChoice = null;
+        let db = null;
+        let choiceRef = null;
+        let unsubscribe = null;
 
-        // دالة لجلب الاختيار من localStorage
-        function fetchChoice() {
-            const savedChoice = localStorage.getItem('babyGender');
-            
-            if (savedChoice && savedChoice !== currentChoice) {
-                currentChoice = savedChoice;
-                displayResult(currentChoice);
-                showUpdateNotification();
-            } else if (!savedChoice && currentChoice !== null) {
-                currentChoice = null;
-                showWaitingMessage();
-            } else if (!savedChoice) {
-                showWaitingMessage();
+        async function initializeFirebase() {
+            try {
+                // Fetch config from server
+                const response = await fetch('/api/config');
+                const firebaseConfig = await response.json();
+                
+                if (firebaseConfig.apiKey && firebaseConfig.projectId) {
+                    // Initialize Firebase
+                    const firebaseApp = firebase.initializeApp(firebaseConfig);
+                    db = firebase.firestore();
+                    choiceRef = db.collection('babyChoices').doc('currentChoice');
+                    
+                    // Update connection status
+                    document.getElementById('statusText').innerHTML = '✅ متصل بـ Firebase';
+                    document.getElementById('statusText').className = 'connected';
+                    
+                    // Listen for real-time updates
+                    unsubscribe = choiceRef.onSnapshot((doc) => {
+                        console.log('تم استلام تحديث من Firebase');
+                        if (doc.exists) {
+                            const data = doc.data();
+                            if (data.choice) {
+                                displayResult(data.choice);
+                            } else {
+                                showWaitingMessage();
+                            }
+                        } else {
+                            showWaitingMessage();
+                        }
+                    }, (error) => {
+                        console.error('Firestore error:', error);
+                        showError('حدث خطأ في الاتصال بقاعدة البيانات');
+                        document.getElementById('statusText').innerHTML = '⚠️ غير متصل';
+                        document.getElementById('statusText').className = 'disconnected';
+                    });
+                } else {
+                    // Fallback to localStorage for demo
+                    document.getElementById('statusText').innerHTML = '⚠️ وضع تجريبي (localStorage)';
+                    document.getElementById('statusText').className = 'disconnected';
+                    const savedChoice = localStorage.getItem('babyGender');
+                    if (savedChoice) {
+                        displayResult(savedChoice);
+                    } else {
+                        showWaitingMessage();
+                    }
+                    
+                    // Listen for storage events
+                    window.addEventListener('storage', (e) => {
+                        if (e.key === 'babyGender') {
+                            if (e.newValue) {
+                                displayResult(e.newValue);
+                            } else {
+                                showWaitingMessage();
+                            }
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error('Init error:', error);
+                // Fallback to localStorage
+                document.getElementById('statusText').innerHTML = '⚠️ وضع تجريبي (localStorage)';
+                document.getElementById('statusText').className = 'disconnected';
+                const savedChoice = localStorage.getItem('babyGender');
+                if (savedChoice) {
+                    displayResult(savedChoice);
+                } else {
+                    showWaitingMessage();
+                }
             }
         }
 
-        // دالة لعرض إشعار التحديث
-        function showUpdateNotification() {
-            const counterDiv = document.getElementById('counter');
-            const originalText = counterDiv.innerHTML;
-            counterDiv.innerHTML = '🔄 تم التحديث! 🔄';
-            counterDiv.style.animation = 'pulse 0.5s';
-            counterDiv.style.color = '#28a745';
-            counterDiv.style.fontWeight = 'bold';
-            
-            setTimeout(() => {
-                counterDiv.innerHTML = originalText;
-                counterDiv.style.animation = '';
-                counterDiv.style.color = '#999';
-                counterDiv.style.fontWeight = 'normal';
-            }, 2000);
-        }
-
-        // دالة لعرض رسالة الانتظار
         function showWaitingMessage() {
             const resultDiv = document.getElementById('resultContent');
             resultDiv.innerHTML = `
                 <div class="result-box">
-                    <p style="font-size: 18px;">✨ في انتظار الاختيار... ✨</p>
+                    <p style="font-size: 18px;">✨ في انتظار اختيار اختي... ✨</p>
                     <div class="gender-icon">⏳</div>
-                    <div class="update-badge">🔄 تنتظر التحديث...</div>
+                    <p style="font-size: 14px; margin-top: 10px;">ستختار اختي قريباً لنعرف نوع الجنين! 💝</p>
                 </div>
             `;
         }
 
-        // دالة لعرض النتيجة
         function displayResult(choice) {
             const resultDiv = document.getElementById('resultContent');
             const isBoy = choice === 'boy';
@@ -244,22 +270,16 @@
                 ? 'linear-gradient(135deg, #4A90E2 0%, #357ABD 100%)' 
                 : 'linear-gradient(135deg, #E85D75 0%, #D9445C 100%)';
 
-            // تأثير اهتزاز خفيف عند التحديث
-            resultDiv.style.animation = 'none';
-            resultDiv.offsetHeight; // إعادة تعيين الأنيميشن
-            resultDiv.style.animation = 'fadeIn 0.5s ease-in';
-            
             resultDiv.innerHTML = `
-                <div class="result-box" style="background: ${bgGradient}; animation: fadeIn 0.5s;">
-                    <p style="font-size: 20px;">🥳 مبروك اختي 🥳</p>
+                <div class="result-box" style="background: ${bgGradient}">
+                    <p style="font-size:20px;">🥳 مبروك اختي 🥳</p>
                     <div class="gender-icon ${colorClass}">${genderIcon}</div>
                     <div class="result-text">الجنين ${genderText}</div>
-                    <div class="update-badge">✅ تم تحديث الاختيار</div>
+                    <p style="margin-top:15px;">💝 الله يتمملك على خير 💝</p>
                 </div>
             `;
         }
 
-        // دالة لعرض الخطأ
         function showError(message) {
             const errorDiv = document.getElementById('error');
             errorDiv.textContent = message;
@@ -269,89 +289,34 @@
             }, 3000);
         }
 
-        // دالة لإعادة تعيين الاختيار
         async function resetChoice() {
-            try {
+            if (db && choiceRef && unsubscribe) {
+                try {
+                    await choiceRef.delete();
+                    showWaitingMessage();
+                    showError('تم مسح الاختيار! يمكن لاختك الاختيار مرة أخرى');
+                } catch (error) {
+                    console.error('Reset error:', error);
+                    localStorage.removeItem('babyGender');
+                    showWaitingMessage();
+                }
+            } else {
                 localStorage.removeItem('babyGender');
-                currentChoice = null;
                 showWaitingMessage();
-                showError('تم إعادة تعيين الاختيار! يمكن لاختك الاختيار مرة أخرى');
-                
-                // إرسال إشارة إلى dashboard إذا كان مفتوحاً (اختياري)
-                window.dispatchEvent(new StorageEvent('storage', {
-                    key: 'babyGender',
-                    newValue: null,
-                    oldValue: 'boy' // or whatever was there
-                }));
-            } catch (error) {
-                console.error('Reset error:', error);
-                showError('حدث خطأ في إعادة التعيين');
+                showError('تم مسح الاختيار (وضع تجريبي)');
             }
         }
 
-        // بدء التحديث التلقائي
-        function startAutoUpdate() {
-            if (intervalId) {
-                clearInterval(intervalId);
-            }
-            
-            // تنفيذ أول مرة فوراً
-            fetchChoice();
-            
-            // ثم كل 3 ثواني
-            intervalId = setInterval(() => {
-                console.log('جاري تحديث البيانات...', new Date().toLocaleTimeString());
-                fetchChoice();
-            }, 3000); // 3000 ميلي ثانية = 3 ثواني
-        }
-
-        // الاستماع للتغيرات من tabs أخرى (للتحديث الفوري)
-        window.addEventListener('storage', (event) => {
-            if (event.key === 'babyGender') {
-                console.log('تم اكتشاف تغيير من علامة تبويب أخرى:', event.newValue);
-                setTimeout(() => {
-                    fetchChoice();
-                }, 100);
-            }
-        });
-
-        // عند تحميل الصفحة
-        document.addEventListener('DOMContentLoaded', () => {
-            startAutoUpdate();
-            
-            // إضافة مؤشر أن التحديث التلقائي يعمل
-            const counterDiv = document.getElementById('counter');
-            setInterval(() => {
-                if (counterDiv.innerHTML.includes('تم التحديث')) return;
-                const seconds = Math.floor((Date.now() / 1000) % 60);
-                counterDiv.innerHTML = `🔄 تحديث تلقائي كل 3 ثواني | آخر تحديث: ${new Date().toLocaleTimeString()}`;
-            }, 1000);
-        });
-
-        // تنظيف الـ Interval عند مغادرة الصفحة (اختياري)
-        window.addEventListener('beforeunload', () => {
-            if (intervalId) {
-                clearInterval(intervalId);
-            }
-        });
-
-        // دالة للتحقق من الاتصال (اختياري)
-        function checkConnection() {
-            if (!navigator.onLine) {
-                showError('⚠️ لا يوجد اتصال بالإنترنت! سيتم استخدام البيانات المخزنة محلياً');
-            }
-        }
-        
-        window.addEventListener('online', () => {
-            showError('✅ تم استعادة الاتصال بالإنترنت');
-            fetchChoice();
-        });
-        
-        window.addEventListener('offline', () => {
-            showError('⚠️ انقطع الاتصال بالإنترنت! سيتم استخدام البيانات المخزنة');
-        });
-        
-        checkConnection();
+        // Load Firebase SDK
+        const script = document.createElement('script');
+        script.src = 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js';
+        script.onload = () => {
+            const firestoreScript = document.createElement('script');
+            firestoreScript.src = 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js';
+            firestoreScript.onload = initializeFirebase;
+            document.head.appendChild(firestoreScript);
+        };
+        document.head.appendChild(script);
     </script>
 </body>
 </html>
