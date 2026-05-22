@@ -86,6 +86,10 @@
             cursor: pointer;
             margin-top: 20px;
         }
+        .loading {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
     </style>
 </head>
 <body>
@@ -94,10 +98,10 @@
         <p>اضغطي على الزر لاختيار جنس البيبي</p>
         
         <div class="buttons">
-            <button class="btn btn-boy" onclick="selectGender('boy')">
+            <button class="btn btn-boy" id="boyBtn" onclick="selectGender('boy')">
                 👦 BOY 👦
             </button>
-            <button class="btn btn-girl" onclick="selectGender('girl')">
+            <button class="btn btn-girl" id="girlBtn" onclick="selectGender('girl')">
                 👧 GIRL 👧
             </button>
         </div>
@@ -111,37 +115,62 @@
         </button>
     </div>
 
-    <script>
-        async function selectGender(gender) {
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, doc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        
+        const firebaseConfig = {
+            apiKey: "AIzaSyBsMTcIcg9c8mWXU112UEBWFmHiDXNQsBg",
+            authDomain: "ramadan-39961.firebaseapp.com",
+            projectId: "ramadan-39961",
+            storageBucket: "ramadan-39961.firebasestorage.app",
+            messagingSenderId: "40328788800",
+            appId: "1:40328788800:web:8c48edf621cd00ebaf18a5",
+            measurementId: "G-E0SCNXH3G4"
+        };
+        
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        
+        window.selectGender = async function(gender) {
             const statusDiv = document.getElementById('status');
+            const boyBtn = document.getElementById('boyBtn');
+            const girlBtn = document.getElementById('girlBtn');
+            
+            // تعطيل الأزرار مؤقتاً
+            boyBtn.disabled = true;
+            girlBtn.disabled = true;
+            boyBtn.classList.add('loading');
+            girlBtn.classList.add('loading');
+            
             statusDiv.innerHTML = '⏳ جاري الحفظ...';
             statusDiv.className = 'status';
             
             try {
-                const response = await fetch('/api/choice', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ gender }),
+                await setDoc(doc(db, "babyChoice", "current"), {
+                    gender: gender,
+                    timestamp: serverTimestamp()
                 });
                 
-                const data = await response.json();
+                statusDiv.innerHTML = `✅ تم الاختيار: ${gender === 'boy' ? 'ولد 👦' : 'بنت 👧'} ✅`;
+                statusDiv.className = 'status success';
                 
-                if (data.success) {
-                    statusDiv.innerHTML = `✅ تم الاختيار: ${gender === 'boy' ? 'ولد 👦' : 'بنت 👧'} ✅`;
-                    statusDiv.className = 'status success';
-                    setTimeout(() => {
-                        window.location.href = '/index.html';
-                    }, 1500);
-                } else {
-                    throw new Error('Failed to save');
-                }
+                setTimeout(() => {
+                    window.location.href = '/index.html';
+                }, 1500);
             } catch (error) {
+                console.error("Error:", error);
                 statusDiv.innerHTML = '❌ حدث خطأ، حاولي مرة أخرى ❌';
                 statusDiv.className = 'status error';
+                
+                // إعادة تفعيل الأزرار
+                boyBtn.disabled = false;
+                girlBtn.disabled = false;
+                boyBtn.classList.remove('loading');
+                girlBtn.classList.remove('loading');
             }
-        }
+        };
     </script>
 </body>
 </html>
