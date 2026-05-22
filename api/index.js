@@ -9,18 +9,22 @@ let db;
 try {
     let firebaseConfig;
     if (process.env.FIREBASE_CONFIG) {
-        firebaseConfig = JSON.parse(process.env.FIREBASE_CONFIG);
-        if (!admin.apps.length) {
-            admin.initializeApp({
-                credential: admin.credential.cert(firebaseConfig),
-                databaseURL: `https://${firebaseConfig.project_id}-default-rtdb.firebaseio.com`
-            });
-        }
-        db = admin.database();
-        console.log('✅ Firebase initialized');
+
+    firebaseConfig = JSON.parse(process.env.FIREBASE_CONFIG);
+
+    firebaseConfig.private_key =
+      firebaseConfig.private_key.replace(/\\n/g, '\n');
+
+    if (!admin.apps.length) {
+        admin.initializeApp({
+            credential: admin.credential.cert(firebaseConfig),
+            databaseURL: `https://${firebaseConfig.project_id}-default-rtdb.firebaseio.com`
+        });
     }
-} catch (error) {
-    console.error('❌ Firebase error:', error);
+
+    db = admin.database();
+
+    console.log('✅ Firebase initialized');
 }
 
 // دوال مساعدة
