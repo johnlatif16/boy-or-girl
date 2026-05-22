@@ -1,44 +1,56 @@
 const express = require('express');
 const path = require('path');
-require('dotenv').config();
+const admin = require('firebase-admin');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Middleware
+// Initialize Firebase Admin
+const firebaseConfig = JSON.parse(process.env.FIREBASE_CONFIG);
+admin.initializeApp({
+  credential: admin.credential.cert({
+    projectId: firebaseConfig.projectId,
+    clientEmail: `firebase-adminsdk-${firebaseConfig.projectId}@${firebaseConfig.projectId}.iam.gserviceaccount.com`,
+    privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+  }),
+  databaseURL: `https://${firebaseConfig.projectId}.firebaseio.com`,
+});
+
+const db = admin.firestore();
+
 app.use(express.json());
-app.use(express.static('public'));
+app.use(express.static(path.join(__dirname, 'public')));
 
-// API endpoint to get Firebase config
-app.get('/api/config', (req, res) => {
-    const firebaseConfig = process.env.FIREBASE_CONFIG;
-    
-    if (firebaseConfig) {
-        try {
-            const config = JSON.parse(firebaseConfig);
-            res.json(config);
-        } catch (error) {
-            console.error('Error parsing FIREBASE_CONFIG:', error);
-            res.json({});
-        }
+// API to save gender choice
+app.post('/api/choice', async (req, res) => {
+  const { gender } = req.body;
+  try {
+    await db.collection('babyChoice').doc('current').set({
+      gender,
+      timestamp: admin.firestore.FieldValue.serverTimestamp(),
+    });
+    res.json({ success: true });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// API to get current choice
+app.get('/api/choice', async (req, res) => {
+  try {
+    const doc = await db.collection('babyChoice').doc('current').get();
+    if (doc.exists) {
+      res.json({ gender: doc.data().gender });
     } else {
-        // Return empty config for demo mode
-        res.json({});
+      res.json({ gender: null });
     }
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, error: error.message });
+  }
 });
 
-// Serve index.html for root route
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
-
-// Serve dashboard.html
-app.get('/dashboard', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
-});
-
-// Start server
 app.listen(PORT, () => {
-    console.log(`Server is running on http://localhost:${PORT}`);
-    console.log(`Dashboard available at http://localhost:${PORT}/dashboard`);
+  console.log(`Server running on port ${PORT}`);
 });
