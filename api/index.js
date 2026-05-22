@@ -26,10 +26,30 @@ try {
 // دوال مساعدة
 async function readData() {
     try {
+        if (!db) {
+            return {
+                currentGender: null,
+                lastUpdated: null,
+                showResult: false
+            };
+        }
+
         const snapshot = await db.ref('gameData').once('value');
-        return snapshot.val() || { currentGender: null, lastUpdated: null, showResult: false };
+
+        return snapshot.val() || {
+            currentGender: null,
+            lastUpdated: null,
+            showResult: false
+        };
+
     } catch (error) {
-        return { currentGender: null, lastUpdated: null, showResult: false };
+        console.error(error);
+
+        return {
+            currentGender: null,
+            lastUpdated: null,
+            showResult: false
+        };
     }
 }
 
@@ -41,6 +61,9 @@ async function writeData(data) {
         return false;
     }
 }
+
+console.log("Server started");
+console.log("Firebase exists:", !!db);
 
 // API Routes
 app.get('/api/result', async (req, res) => {
