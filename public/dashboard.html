@@ -64,6 +64,8 @@
             padding: 20px;
             border-radius: 10px;
             background: #f0f0f0;
+            font-size: 14px;
+            word-break: break-word;
         }
         .success {
             background: #4caf50;
@@ -71,6 +73,10 @@
         }
         .error {
             background: #f44336;
+            color: white;
+        }
+        .info {
+            background: #2196f3;
             color: white;
         }
         button:active {
@@ -130,13 +136,28 @@
             measurementId: "G-E0SCNXH3G4"
         };
         
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
+        let app, db;
+        
+        try {
+            app = initializeApp(firebaseConfig);
+            db = getFirestore(app);
+            console.log("✅ Firebase initialized successfully");
+        } catch (error) {
+            console.error("❌ Firebase init error:", error);
+            document.getElementById('status').innerHTML = '❌ خطأ في الاتصال بقاعدة البيانات';
+            document.getElementById('status').className = 'status error';
+        }
         
         window.selectGender = async function(gender) {
             const statusDiv = document.getElementById('status');
             const boyBtn = document.getElementById('boyBtn');
             const girlBtn = document.getElementById('girlBtn');
+            
+            if (!db) {
+                statusDiv.innerHTML = '❌ قاعدة البيانات غير جاهزة، حاول تحديث الصفحة';
+                statusDiv.className = 'status error';
+                return;
+            }
             
             // تعطيل الأزرار مؤقتاً
             boyBtn.disabled = true;
@@ -148,10 +169,14 @@
             statusDiv.className = 'status';
             
             try {
+                console.log("Attempting to save gender:", gender);
+                
                 await setDoc(doc(db, "babyChoice", "current"), {
                     gender: gender,
                     timestamp: serverTimestamp()
                 });
+                
+                console.log("✅ Saved successfully!");
                 
                 statusDiv.innerHTML = `✅ تم الاختيار: ${gender === 'boy' ? 'ولد 👦' : 'بنت 👧'} ✅`;
                 statusDiv.className = 'status success';
@@ -160,8 +185,18 @@
                     window.location.href = '/index.html';
                 }, 1500);
             } catch (error) {
-                console.error("Error:", error);
-                statusDiv.innerHTML = '❌ حدث خطأ، حاولي مرة أخرى ❌';
+                console.error("❌ Detailed error:", error);
+                
+                let errorMessage = '❌ حدث خطأ: ';
+                if (error.code === 'permission-denied') {
+                    errorMessage += 'يرجى تحديث قواعد Firebase كما هو موضح في الإعدادات';
+                } else if (error.code === 'unavailable') {
+                    errorMessage += 'لا يمكن الاتصال بقاعدة البيانات';
+                } else {
+                    errorMessage += error.message;
+                }
+                
+                statusDiv.innerHTML = errorMessage;
                 statusDiv.className = 'status error';
                 
                 // إعادة تفعيل الأزرار
