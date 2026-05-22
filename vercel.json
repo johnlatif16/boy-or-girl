@@ -16,12 +16,8 @@
       "dest": "/server.js"
     },
     {
-      "src": "/dashboard",
-      "dest": "/public/dashboard.html"
-    },
-    {
       "src": "/(.*)",
-      "dest": "/public/index.html"
+      "dest": "/public/$1"
     }
   ]
 }
