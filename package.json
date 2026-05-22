@@ -1,13 +1,12 @@
 {
-  "name": "baby-gender-picker",
+  "name": "baby-gender",
   "version": "1.0.0",
-  "description": "Choose baby gender",
+  "description": "Baby gender picker",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
   },
   "dependencies": {
-    "express": "^4.18.2",
-    "firebase-admin": "^11.10.1"
+    "express": "^4.18.2"
   }
 }
