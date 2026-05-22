@@ -3,349 +3,145 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>لوحة التحكم - اختيار نوع الجنين</title>
+    <title>اختيار جنس المولود</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Arial', sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
+            margin: 0;
             padding: 20px;
         }
-
         .container {
             background: white;
-            border-radius: 30px;
-            padding: 50px 40px;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            text-align: center;
             max-width: 600px;
             width: 100%;
-            text-align: center;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            animation: fadeIn 0.8s ease-in;
         }
-
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(-20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
         h1 {
             color: #333;
-            margin-bottom: 10px;
-            font-size: 28px;
+            margin-bottom: 20px;
         }
-
-        .subtitle {
-            color: #666;
-            margin-bottom: 40px;
-            font-size: 16px;
-        }
-
-        .buttons-container {
+        .buttons {
             display: flex;
             gap: 30px;
             justify-content: center;
-            margin-bottom: 40px;
+            margin: 40px 0;
             flex-wrap: wrap;
         }
-
-        .choice-btn {
-            flex: 1;
-            min-width: 180px;
-            padding: 40px 20px;
-            font-size: 24px;
-            font-weight: bold;
+        .btn {
+            font-size: 2em;
+            padding: 30px 50px;
             border: none;
             border-radius: 20px;
             cursor: pointer;
-            transition: transform 0.3s, box-shadow 0.3s;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 15px;
-        }
-
-        .choice-btn:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-        }
-
-        .choice-btn:active {
-            transform: translateY(0);
-        }
-
-        .boy-btn {
-            background: linear-gradient(135deg, #4A90E2 0%, #357ABD 100%);
-            color: white;
-        }
-
-        .girl-btn {
-            background: linear-gradient(135deg, #E85D75 0%, #D9445C 100%);
-            color: white;
-        }
-
-        .emoji-large {
-            font-size: 80px;
-        }
-
-        .current-status {
-            background: #f8f9fa;
-            padding: 20px;
-            border-radius: 15px;
-            margin-top: 20px;
-        }
-
-        .current-status h3 {
-            color: #333;
-            margin-bottom: 15px;
-        }
-
-        .status-badge {
-            display: inline-block;
-            padding: 10px 20px;
-            border-radius: 50px;
+            transition: all 0.3s ease;
             font-weight: bold;
-            margin-top: 10px;
-        }
-
-        .status-set {
-            background: #28a745;
             color: white;
         }
-
-        .status-not-set {
-            background: #dc3545;
+        .btn-boy {
+            background: linear-gradient(135deg, #4facfe, #00f2fe);
+        }
+        .btn-boy:hover {
+            transform: scale(1.1);
+            box-shadow: 0 10px 30px rgba(79, 172, 254, 0.4);
+        }
+        .btn-girl {
+            background: linear-gradient(135deg, #f093fb, #f5576c);
+        }
+        .btn-girl:hover {
+            transform: scale(1.1);
+            box-shadow: 0 10px 30px rgba(240, 147, 251, 0.4);
+        }
+        .status {
+            margin-top: 30px;
+            padding: 20px;
+            border-radius: 10px;
+            background: #f0f0f0;
+        }
+        .success {
+            background: #4caf50;
             color: white;
         }
-
-        .reset-btn {
-            background: #6c757d;
+        .error {
+            background: #f44336;
+            color: white;
+        }
+        button:active {
+            transform: scale(0.95);
+        }
+        .back-btn {
+            background: #667eea;
             color: white;
             border: none;
-            padding: 12px 30px;
-            font-size: 16px;
-            border-radius: 50px;
-            cursor: pointer;
-            transition: background 0.3s;
-            margin-top: 20px;
-        }
-
-        .reset-btn:hover {
-            background: #5a6268;
-        }
-
-        .message {
-            margin-top: 20px;
-            padding: 15px;
+            padding: 10px 20px;
+            font-size: 1em;
             border-radius: 10px;
-            display: none;
-        }
-
-        .success {
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-
-        .error {
-            background: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-
-        .loading {
-            display: none;
-            margin: 20px 0;
-        }
-
-        .spinner {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #667eea;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+            cursor: pointer;
+            margin-top: 20px;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🎯 لوحة التحكم</h1>
-        <div class="subtitle">اختاري نوع الجنين</div>
-
-        <div class="buttons-container">
-            <button class="choice-btn boy-btn" onclick="makeChoice('boy')">
-                <div class="emoji-large">👦</div>
-                <div>ولد</div>
+        <h1>🤰 اختاري جنس المولود 🤰</h1>
+        <p>اضغطي على الزر لاختيار جنس البيبي</p>
+        
+        <div class="buttons">
+            <button class="btn btn-boy" onclick="selectGender('boy')">
+                👦 BOY 👦
             </button>
-            <button class="choice-btn girl-btn" onclick="makeChoice('girl')">
-                <div class="emoji-large">👧</div>
-                <div>بنت</div>
+            <button class="btn btn-girl" onclick="selectGender('girl')">
+                👧 GIRL 👧
             </button>
         </div>
-
-        <div class="current-status">
-            <h3>📊 الحالة الحالية</h3>
-            <div id="currentChoice"></div>
+        
+        <div id="status" class="status">
+            ⏳ لم يتم الاختيار بعد
         </div>
-
-        <button class="reset-btn" onclick="resetChoice()">🔄 إعادة تعيين</button>
-
-        <div id="message" class="message"></div>
-        <div class="loading" id="loading">
-            <div class="spinner"></div>
-            <p style="margin-top: 10px;">جاري...</p>
-        </div>
+        
+        <button class="back-btn" onclick="window.location.href='/index.html'">
+            👈 عرض النتيجة
+        </button>
     </div>
 
     <script>
-        let db = null;
-        let choiceRef = null;
-
-        function showMessage(text, type) {
-            const msgDiv = document.getElementById('message');
-            msgDiv.textContent = text;
-            msgDiv.className = `message ${type}`;
-            msgDiv.style.display = 'block';
-            setTimeout(() => {
-                msgDiv.style.display = 'none';
-            }, 3000);
-        }
-
-        function showLoading(show) {
-            document.getElementById('loading').style.display = show ? 'block' : 'none';
-        }
-
-        async function initializeFirebase() {
+        async function selectGender(gender) {
+            const statusDiv = document.getElementById('status');
+            statusDiv.innerHTML = '⏳ جاري الحفظ...';
+            statusDiv.className = 'status';
+            
             try {
-                const response = await fetch('/api/config');
-                const firebaseConfig = await response.json();
+                const response = await fetch('/api/choice', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ gender }),
+                });
                 
-                if (firebaseConfig.apiKey && firebaseConfig.projectId) {
-                    const firebaseApp = firebase.initializeApp(firebaseConfig);
-                    db = firebase.firestore();
-                    choiceRef = db.collection('babyChoices').doc('currentChoice');
-                    
-                    // Listen for real-time updates
-                    choiceRef.onSnapshot((doc) => {
-                        if (doc.exists) {
-                            const data = doc.data();
-                            if (data.choice) {
-                                displayCurrentChoice(data.choice);
-                            } else {
-                                displayCurrentChoice(null);
-                            }
-                        } else {
-                            displayCurrentChoice(null);
-                        }
-                    });
+                const data = await response.json();
+                
+                if (data.success) {
+                    statusDiv.innerHTML = `✅ تم الاختيار: ${gender === 'boy' ? 'ولد 👦' : 'بنت 👧'} ✅`;
+                    statusDiv.className = 'status success';
+                    setTimeout(() => {
+                        window.location.href = '/index.html';
+                    }, 1500);
                 } else {
-                    // Fallback to localStorage
-                    const savedChoice = localStorage.getItem('babyGender');
-                    displayCurrentChoice(savedChoice);
+                    throw new Error('Failed to save');
                 }
             } catch (error) {
-                console.error('Init error:', error);
-                const savedChoice = localStorage.getItem('babyGender');
-                displayCurrentChoice(savedChoice);
+                statusDiv.innerHTML = '❌ حدث خطأ، حاولي مرة أخرى ❌';
+                statusDiv.className = 'status error';
             }
         }
-
-        function displayCurrentChoice(choice) {
-            const div = document.getElementById('currentChoice');
-            if (choice) {
-                const isBoy = choice === 'boy';
-                const genderText = isBoy ? 'ولد' : 'بنت';
-                const genderIcon = isBoy ? '👦' : '👧';
-                div.innerHTML = `
-                    <div class="status-badge status-set">
-                        ${genderIcon} تم الاختيار: ${genderText}
-                    </div>
-                `;
-            } else {
-                div.innerHTML = `
-                    <div class="status-badge status-not-set">
-                        ⏳ لم يتم الاختيار بعد
-                    </div>
-                `;
-            }
-        }
-
-        async function makeChoice(choice) {
-            showLoading(true);
-            
-            try {
-                if (db && choiceRef) {
-                    await choiceRef.set({
-                        choice: choice,
-                        timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                        updatedBy: 'dashboard'
-                    });
-                    showMessage(`✅ تم اختيار ${choice === 'boy' ? 'ولد' : 'بنت'} بنجاح!`, 'success');
-                } else {
-                    // Fallback to localStorage
-                    localStorage.setItem('babyGender', choice);
-                    displayCurrentChoice(choice);
-                    showMessage(`✅ تم اختيار ${choice === 'boy' ? 'ولد' : 'بنت'} بنجاح! (وضع تجريبي)`, 'success');
-                }
-            } catch (error) {
-                console.error('Save error:', error);
-                showMessage('❌ حدث خطأ في حفظ الاختيار', 'error');
-            } finally {
-                showLoading(false);
-            }
-        }
-
-        async function resetChoice() {
-            showLoading(true);
-            
-            try {
-                if (db && choiceRef) {
-                    await choiceRef.delete();
-                    showMessage('🔄 تم إعادة تعيين الاختيار بنجاح', 'success');
-                } else {
-                    localStorage.removeItem('babyGender');
-                    displayCurrentChoice(null);
-                    showMessage('🔄 تم إعادة تعيين الاختيار بنجاح (وضع تجريبي)', 'success');
-                }
-            } catch (error) {
-                console.error('Reset error:', error);
-                showMessage('❌ حدث خطأ في إعادة التعيين', 'error');
-            } finally {
-                showLoading(false);
-            }
-        }
-
-        // Load Firebase SDK
-        const script = document.createElement('script');
-        script.src = 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js';
-        script.onload = () => {
-            const firestoreScript = document.createElement('script');
-            firestoreScript.src = 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js';
-            firestoreScript.onload = initializeFirebase;
-            document.head.appendChild(firestoreScript);
-        };
-        document.head.appendChild(script);
     </script>
 </body>
 </html>
