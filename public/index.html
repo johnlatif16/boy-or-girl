@@ -79,36 +79,46 @@
         </button>
     </div>
 
-    <script>
-        async function loadChoice() {
-            try {
-                const response = await fetch('/api/choice');
-                const data = await response.json();
-                const resultDiv = document.getElementById('result');
-                const messageDiv = document.getElementById('message');
-                
-                if (data.gender === 'boy') {
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        
+        const firebaseConfig = {
+            apiKey: "AIzaSyBsMTcIcg9c8mWXU112UEBWFmHiDXNQsBg",
+            authDomain: "ramadan-39961.firebaseapp.com",
+            projectId: "ramadan-39961",
+            storageBucket: "ramadan-39961.firebasestorage.app",
+            messagingSenderId: "40328788800",
+            appId: "1:40328788800:web:8c48edf621cd00ebaf18a5",
+            measurementId: "G-E0SCNXH3G4"
+        };
+        
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        
+        const resultDiv = document.getElementById('result');
+        const messageDiv = document.getElementById('message');
+        
+        // استماع التغييرات في الوقت الفعلي
+        onSnapshot(doc(db, "babyChoice", "current"), (doc) => {
+            if (doc.exists()) {
+                const gender = doc.data().gender;
+                if (gender === 'boy') {
                     resultDiv.innerHTML = '👦 ولد 👦';
                     resultDiv.className = 'result boy';
                     messageDiv.innerHTML = '🎉 ألف مبروك! رزقكم الله بالغلام الصالح 🎉';
-                } else if (data.gender === 'girl') {
+                } else if (gender === 'girl') {
                     resultDiv.innerHTML = '👧 بنت 👧';
                     resultDiv.className = 'result girl';
                     messageDiv.innerHTML = '🎉 ألف مبروك! رزقكم الله بالبنت الصالحة 🎉';
-                } else {
-                    resultDiv.innerHTML = '❓ لم يتم الاختيار بعد ❓';
-                    resultDiv.className = 'result pending';
-                    messageDiv.innerHTML = '📝 يرجى اختيار جنس المولود من لوحة التحكم';
                 }
-            } catch (error) {
-                console.error('Error:', error);
-                document.getElementById('result').innerHTML = '⚠️ خطأ في الاتصال';
+            } else {
+                resultDiv.innerHTML = '❓ لم يتم الاختيار بعد ❓';
+                resultDiv.className = 'result pending';
+                messageDiv.innerHTML = '📝 يرجى اختيار جنس المولود من لوحة التحكم';
             }
-        }
-        
-        loadChoice();
-        // Auto-refresh every 5 seconds
-        setInterval(loadChoice, 5000);
+        });
     </script>
 </body>
 </html>
