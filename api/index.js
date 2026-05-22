@@ -113,5 +113,4 @@ app.get('/dashboard', (req, res) => {
     res.sendFile(path.join(__dirname, '../public', 'dashboard.html'));
 });
 
-// Vercel requires this export
 module.exports = app;
