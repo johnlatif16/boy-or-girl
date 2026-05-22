@@ -1,8 +1,17 @@
 {
-  "name": "boy-or-girl",
+  "name": "baby-gender-guess",
   "version": "1.0.0",
+  "description": "Interactive app for baby gender guessing",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  },
   "dependencies": {
     "express": "^4.18.2",
-    "firebase-admin": "^11.11.1"
+    "dotenv": "^16.3.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
   }
 }
