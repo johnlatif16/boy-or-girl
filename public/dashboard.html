@@ -186,6 +186,15 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+
+        .connection-status {
+            background: #f8f9fa;
+            padding: 8px;
+            border-radius: 20px;
+            font-size: 12px;
+            margin-top: 15px;
+            color: #666;
+        }
     </style>
 </head>
 <body>
@@ -216,11 +225,16 @@
             <div class="spinner"></div>
             <p style="margin-top: 10px;">جاري...</p>
         </div>
+        
+        <div class="connection-status" id="connectionStatus">
+            <span id="statusText">جاري الاتصال...</span>
+        </div>
     </div>
 
     <script>
         let db = null;
         let choiceRef = null;
+        let unsubscribe = null;
 
         function showMessage(text, type) {
             const msgDiv = document.getElementById('message');
@@ -246,8 +260,10 @@
                     db = firebase.firestore();
                     choiceRef = db.collection('babyChoices').doc('currentChoice');
                     
+                    document.getElementById('statusText').innerHTML = '✅ متصل بـ Firebase';
+                    
                     // Listen for real-time updates
-                    choiceRef.onSnapshot((doc) => {
+                    unsubscribe = choiceRef.onSnapshot((doc) => {
                         if (doc.exists) {
                             const data = doc.data();
                             if (data.choice) {
@@ -261,11 +277,20 @@
                     });
                 } else {
                     // Fallback to localStorage
+                    document.getElementById('statusText').innerHTML = '⚠️ وضع تجريبي (localStorage)';
                     const savedChoice = localStorage.getItem('babyGender');
                     displayCurrentChoice(savedChoice);
+                    
+                    // Listen for storage events
+                    window.addEventListener('storage', (e) => {
+                        if (e.key === 'babyGender') {
+                            displayCurrentChoice(e.newValue);
+                        }
+                    });
                 }
             } catch (error) {
                 console.error('Init error:', error);
+                document.getElementById('statusText').innerHTML = '⚠️ وضع تجريبي (localStorage)';
                 const savedChoice = localStorage.getItem('babyGender');
                 displayCurrentChoice(savedChoice);
             }
