@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تخمين جنس المولود - Boy or Girl</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Tahoma', 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            text-align: center;
+            max-width: 500px;
+            width: 100%;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 16px;
+        }
+
+        .waiting-box {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+        }
+
+        .waiting-text {
+            color: #856404;
+            font-size: 20px;
+            margin-bottom: 10px;
+        }
+
+        .waiting-icon {
+            font-size: 48px;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.5; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.1); }
+        }
+
+        .result-box {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 15px;
+            padding: 40px;
+            margin-bottom: 30px;
+        }
+
+        .result-text {
+            font-size: 48px;
+            font-weight: bold;
+            color: white;
+            margin-bottom: 10px;
+        }
+
+        .result-subtext {
+            color: rgba(255,255,255,0.9);
+            font-size: 18px;
+        }
+
+        .buttons {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin-bottom: 30px;
+        }
+
+        .guess-btn {
+            flex: 1;
+            padding: 20px;
+            font-size: 24px;
+            font-weight: bold;
+            border: none;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .guess-btn:hover:not(:disabled) {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        }
+
+        .guess-btn:active:not(:disabled) {
+            transform: translateY(0);
+        }
+
+        .guess-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .boy-btn {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+        }
+
+        .girl-btn {
+            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            color: white;
+        }
+
+        .reset-btn {
+            background: #ff6b6b;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .reset-btn:hover {
+            background: #ff5252;
+        }
+
+        .locked-message {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 10px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px;
+            }
+            .result-text {
+                font-size: 32px;
+            }
+            .guess-btn {
+                font-size: 18px;
+                padding: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🤰 خمن جنس المولود</h1>
+        <p class="subtitle">اختر Boy أو Girl وشوف النتيجة فوراً!</p>
+
+        <div id="waitingBox" class="waiting-box">
+            <div class="waiting-icon">🤔</div>
+            <div class="waiting-text">في انتظار اختيار النوع...</div>
+        </div>
+
+        <div class="result-box" id="resultBox" style="display: none;">
+            <div class="result-text" id="resultText"></div>
+            <div class="result-subtext" id="resultSubtext"></div>
+        </div>
+
+        <div class="buttons">
+            <button class="guess-btn boy-btn" id="boyBtn" disabled>👦 Boy</button>
+            <button class="guess-btn girl-btn" id="girlBtn" disabled>👧 Girl</button>
+        </div>
+
+        <div id="lockedMessage" style="display: none;" class="locked-message">
+            🔒 الاختيار متاح مرة واحدة فقط لكل شخص
+        </div>
+    </div>
+
+    <script>
+        const boyBtn = document.getElementById('boyBtn');
+        const girlBtn = document.getElementById('girlBtn');
+        const resultBox = document.getElementById('resultBox');
+        const waitingBox = document.getElementById('waitingBox');
+        const resultText = document.getElementById('resultText');
+        const resultSubtext = document.getElementById('resultSubtext');
+        const lockedMessage = document.getElementById('lockedMessage');
+
+        let hasChosen = false;  // هل المستخدم اختار قبل كده؟
+        let currentResult = null;  // النتيجة الحالية من الداشبورد
+
+        // جلب النتيجة من السيرفر
+        async function fetchResult() {
+            try {
+                const response = await fetch('/api/result');
+                const data = await response.json();
+                
+                if (data.showResult && data.gender) {
+                    currentResult = data.gender;
+                    
+                    // إظهار النتيجة في الصفحة
+                    waitingBox.style.display = 'none';
+                    resultBox.style.display = 'block';
+                    
+                    // عرض النتيجة
+                    if (data.gender === 'Boy') {
+                        resultText.innerHTML = '👦 BOY!';
+                        resultSubtext.innerHTML = 'الجنس هو Boy 🎉';
+                    } else {
+                        resultText.innerHTML = '👧 GIRL!';
+                        resultSubtext.innerHTML = 'الجنس هو Girl 🎉';
+                    }
+                    
+                    // تمكين الأزرار للمستخدمين الجدد (اللي لسه ماختاروش)
+                    if (!hasChosen) {
+                        boyBtn.disabled = false;
+                        girlBtn.disabled = false;
+                    }
+                } else {
+                    // لسه مفيش نتيجة
+                    waitingBox.style.display = 'block';
+                    resultBox.style.display = 'none';
+                    boyBtn.disabled = true;
+                    girlBtn.disabled = true;
+                    currentResult = null;
+                }
+            } catch (error) {
+                console.error('Error fetching result:', error);
+            }
+        }
+
+        // لما المستخدم يختار تخمينه
+        async function makeChoice(choice) {
+            if (hasChosen) {
+                alert('لقد قمت بالاختيار مسبقاً! لا يمكنك تغييره.');
+                return;
+            }
+            
+            if (!currentResult) {
+                alert('النتيجة لم تظهر بعد. انتظر لوحة التحكم لتحديد الجنس.');
+                return;
+            }
+            
+            // تخزين إن المستخدم اختار
+            hasChosen = true;
+            
+            // تعطيل الأزرار
+            boyBtn.disabled = true;
+            girlBtn.disabled = true;
+            lockedMessage.style.display = 'block';
+            
+            // حفظ في localStorage
+            localStorage.setItem('hasChosen', 'true');
+            localStorage.setItem('userChoice', choice);
+            localStorage.setItem('actualResult', currentResult);
+            
+            // إظهار النتيجة بناءً على تخمينه
+            if (choice === currentResult) {
+                // صح ✅
+                resultSubtext.innerHTML = `🎉🎊 مبروك! تخمينك صح! الطفل ${choice === 'Boy' ? 'ولد 👦' : 'بنت 👧'} 🎊🎉`;
+                resultText.innerHTML = choice === 'Boy' ? '👦 صح! ✅' : '👧 صح! ✅';
+            } else {
+                // غلط ❌
+                resultSubtext.innerHTML = `😢 للأسف، تخمينك غلط. الجنس الحقيقي هو ${currentResult === 'Boy' ? 'ولد 👦' : 'بنت 👧'}. حاول مرة أخرى في المرة القادمة! 💪`;
+                resultText.innerHTML = choice === 'Boy' ? '👦 غلط! ❌' : '👧 غلط! ❌';
+            }
+        }
+
+        // التحقق إذا كان المستخدم قد اختار قبل كده
+        function checkPreviousChoice() {
+            const savedChoice = localStorage.getItem('hasChosen');
+            if (savedChoice === 'true') {
+                hasChosen = true;
+                boyBtn.disabled = true;
+                girlBtn.disabled = true;
+                lockedMessage.style.display = 'block';
+                
+                // استرجاع النتائج السابقة
+                const userChoice = localStorage.getItem('userChoice');
+                const actualResult = localStorage.getItem('actualResult');
+                
+                if (userChoice && actualResult) {
+                    if (userChoice === actualResult) {
+                        resultSubtext.innerHTML = `🎉🎊 مبروك! تخمينك كان صح! الطفل ${actualResult === 'Boy' ? 'ولد 👦' : 'بنت 👧'} 🎊🎉`;
+                        resultText.innerHTML = actualResult === 'Boy' ? '👦 صح! ✅' : '👧 صح! ✅';
+                    } else {
+                        resultSubtext.innerHTML = `😢 تخمينك كان غلط. الجنس الحقيقي هو ${actualResult === 'Boy' ? 'ولد 👦' : 'بنت 👧'}.`;
+                        resultText.innerHTML = userChoice === 'Boy' ? '👦 غلط! ❌' : '👧 غلط! ❌';
+                    }
+                }
+            }
+        }
+
+        // الأحداث
+        boyBtn.addEventListener('click', () => makeChoice('Boy'));
+        girlBtn.addEventListener('click', () => makeChoice('Girl'));
+
+        // جلب النتيجة كل ثانية (تحديث مباشر)
+        setInterval(fetchResult, 1000);
+        
+        // بدء التشغيل
+        fetchResult();
+        checkPreviousChoice();
+    </script>
+</body>
+</html>
