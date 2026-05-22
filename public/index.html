@@ -3,279 +3,112 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>اختيار نوع الجنين</title>
+    <title>جنس المولود</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Arial', sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
+            margin: 0;
             padding: 20px;
         }
-
         .container {
             background: white;
-            border-radius: 30px;
-            padding: 50px 40px;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            text-align: center;
             max-width: 500px;
             width: 100%;
-            text-align: center;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            animation: fadeIn 0.8s ease-in;
         }
-
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(-20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
         h1 {
             color: #333;
-            margin-bottom: 20px;
-            font-size: 28px;
+            margin-bottom: 30px;
+            font-size: 2em;
         }
-
-        .baby-emoji {
-            font-size: 80px;
-            margin: 20px 0;
-            animation: bounce 1s infinite;
+        .result {
+            font-size: 3em;
+            margin: 30px 0;
+            padding: 20px;
+            border-radius: 15px;
+            background: #f0f0f0;
         }
-
-        @keyframes bounce {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-10px); }
-        }
-
-        .result-box {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        .boy {
+            background: #4facfe;
             color: white;
-            padding: 30px;
-            border-radius: 20px;
-            margin: 20px 0;
         }
-
-        .result-text {
-            font-size: 36px;
-            font-weight: bold;
-            margin: 10px 0;
+        .girl {
+            background: #f093fb;
+            color: white;
         }
-
-        .gender-icon {
-            font-size: 60px;
-            margin: 15px 0;
+        .pending {
+            background: #ffd93d;
+            color: #333;
         }
-
-        .boy-color {
-            color: #4A90E2;
-        }
-
-        .girl-color {
-            color: #E85D75;
-        }
-
         .message {
-            font-size: 18px;
+            margin-top: 20px;
             color: #666;
-            margin: 20px 0;
         }
-
-        .reset-btn {
+        button {
             background: #667eea;
             color: white;
             border: none;
             padding: 12px 30px;
-            font-size: 18px;
-            border-radius: 50px;
-            cursor: pointer;
-            transition: transform 0.3s, background 0.3s;
-            margin-top: 20px;
-        }
-
-        .reset-btn:hover {
-            background: #764ba2;
-            transform: scale(1.05);
-        }
-
-        .loading {
-            display: none;
-            margin: 20px 0;
-        }
-
-        .spinner {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #667eea;
-            border-radius: 50%;
-            width: 50px;
-            height: 50px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        .error {
-            background: #ff4757;
-            color: white;
-            padding: 15px;
+            font-size: 1.1em;
             border-radius: 10px;
-            margin: 20px 0;
-            display: none;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        button:hover {
+            transform: scale(1.05);
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🤰 اختيار نوع الجنين</h1>
-        <div class="baby-emoji">👶</div>
-        
-        <div class="loading" id="loading">
-            <div class="spinner"></div>
-            <p style="margin-top: 10px;">جاري التحميل...</p>
+        <h1>✨ جنس المولود الجديد ✨</h1>
+        <div id="result" class="result pending">
+            ⏳ جاري التحميل...
         </div>
-
-        <div class="error" id="error"></div>
-
-        <div id="resultContent"></div>
-
-        <button class="reset-btn" onclick="resetChoice()">🔄 اختيار مرة أخرى</button>
+        <div class="message" id="message"></div>
+        <button onclick="window.location.href='/dashboard.html'">
+            🎯 اختيار الجنس
+        </button>
     </div>
 
     <script>
-        // Firebase configuration from environment variable
-        // This will be replaced during build or set via API
-        let db = null;
-        let choiceRef = null;
-
-        async function initializeFirebase() {
+        async function loadChoice() {
             try {
-                // Fetch config from server
-                const response = await fetch('/api/config');
-                const firebaseConfig = await response.json();
+                const response = await fetch('/api/choice');
+                const data = await response.json();
+                const resultDiv = document.getElementById('result');
+                const messageDiv = document.getElementById('message');
                 
-                // Initialize Firebase
-                if (firebaseConfig.apiKey && firebaseConfig.projectId) {
-                    const firebaseApp = firebase.initializeApp(firebaseConfig);
-                    db = firebase.firestore();
-                    choiceRef = db.collection('babyChoices').doc('currentChoice');
-                    
-                    // Listen for real-time updates
-                    choiceRef.onSnapshot((doc) => {
-                        if (doc.exists) {
-                            const data = doc.data();
-                            if (data.choice && data.timestamp) {
-                                displayResult(data.choice);
-                            } else {
-                                showWaitingMessage();
-                            }
-                        } else {
-                            showWaitingMessage();
-                        }
-                    }, (error) => {
-                        console.error('Firestore error:', error);
-                        showError('حدث خطأ في الاتصال بقاعدة البيانات');
-                    });
+                if (data.gender === 'boy') {
+                    resultDiv.innerHTML = '👦 ولد 👦';
+                    resultDiv.className = 'result boy';
+                    messageDiv.innerHTML = '🎉 ألف مبروك! رزقكم الله بالغلام الصالح 🎉';
+                } else if (data.gender === 'girl') {
+                    resultDiv.innerHTML = '👧 بنت 👧';
+                    resultDiv.className = 'result girl';
+                    messageDiv.innerHTML = '🎉 ألف مبروك! رزقكم الله بالبنت الصالحة 🎉';
                 } else {
-                    // Fallback to localStorage for demo
-                    const savedChoice = localStorage.getItem('babyGender');
-                    if (savedChoice) {
-                        displayResult(savedChoice);
-                    } else {
-                        showWaitingMessage();
-                    }
+                    resultDiv.innerHTML = '❓ لم يتم الاختيار بعد ❓';
+                    resultDiv.className = 'result pending';
+                    messageDiv.innerHTML = '📝 يرجى اختيار جنس المولود من لوحة التحكم';
                 }
             } catch (error) {
-                console.error('Init error:', error);
-                // Fallback to localStorage
-                const savedChoice = localStorage.getItem('babyGender');
-                if (savedChoice) {
-                    displayResult(savedChoice);
-                } else {
-                    showWaitingMessage();
-                }
+                console.error('Error:', error);
+                document.getElementById('result').innerHTML = '⚠️ خطأ في الاتصال';
             }
         }
-
-        function showWaitingMessage() {
-            const resultDiv = document.getElementById('resultContent');
-            resultDiv.innerHTML = `
-                <div class="result-box">
-                    <p style="font-size: 18px;">✨ في انتظار الاختيار... ✨</p>
-                    <div class="gender-icon">⏳</div>
-                </div>
-            `;
-        }
-
-        function displayResult(choice) {
-            const resultDiv = document.getElementById('resultContent');
-            const isBoy = choice === 'boy';
-            const genderText = isBoy ? 'ولد' : 'بنت';
-            const genderIcon = isBoy ? '👦' : '👧';
-            const colorClass = isBoy ? 'boy-color' : 'girl-color';
-            const bgGradient = isBoy 
-                ? 'linear-gradient(135deg, #4A90E2 0%, #357ABD 100%)' 
-                : 'linear-gradient(135deg, #E85D75 0%, #D9445C 100%)';
-
-            resultDiv.innerHTML = `
-                <div class="result-box" style="background: ${bgGradient}">
-                    <p style="font-size: 20px;">🥳 مبروك 🥳</p>
-                    <div class="gender-icon ${colorClass}">${genderIcon}</div>
-                    <div class="result-text">الجنين ${genderText}</div>
-                </div>
-            `;
-        }
-
-        function showError(message) {
-            const errorDiv = document.getElementById('error');
-            errorDiv.textContent = message;
-            errorDiv.style.display = 'block';
-            setTimeout(() => {
-                errorDiv.style.display = 'none';
-            }, 3000);
-        }
-
-        async function resetChoice() {
-            if (db && choiceRef) {
-                try {
-                    await choiceRef.delete();
-                    showWaitingMessage();
-                } catch (error) {
-                    console.error('Reset error:', error);
-                    localStorage.removeItem('babyGender');
-                    showWaitingMessage();
-                }
-            } else {
-                localStorage.removeItem('babyGender');
-                showWaitingMessage();
-            }
-        }
-
-        // Load Firebase SDK
-        const script = document.createElement('script');
-        script.src = 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js';
-        script.onload = () => {
-            const firestoreScript = document.createElement('script');
-            firestoreScript.src = 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js';
-            firestoreScript.onload = initializeFirebase;
-            document.head.appendChild(firestoreScript);
-        };
-        document.head.appendChild(script);
+        
+        loadChoice();
+        // Auto-refresh every 5 seconds
+        setInterval(loadChoice, 5000);
     </script>
 </body>
 </html>
