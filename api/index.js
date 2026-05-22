@@ -1,5 +1,6 @@
 const express = require('express');
 const admin = require('firebase-admin');
+const path = require('path');
 
 const app = express();
 app.use(express.json());
@@ -9,22 +10,23 @@ let db;
 try {
     let firebaseConfig;
     if (process.env.FIREBASE_CONFIG) {
+        firebaseConfig = JSON.parse(process.env.FIREBASE_CONFIG);
+        firebaseConfig.private_key = firebaseConfig.private_key.replace(/\\n/g, '\n');
 
-    firebaseConfig = JSON.parse(process.env.FIREBASE_CONFIG);
+        if (!admin.apps.length) {
+            admin.initializeApp({
+                credential: admin.credential.cert(firebaseConfig),
+                databaseURL: `https://${firebaseConfig.project_id}-default-rtdb.firebaseio.com`
+            });
+        }
 
-    firebaseConfig.private_key =
-      firebaseConfig.private_key.replace(/\\n/g, '\n');
-
-    if (!admin.apps.length) {
-        admin.initializeApp({
-            credential: admin.credential.cert(firebaseConfig),
-            databaseURL: `https://${firebaseConfig.project_id}-default-rtdb.firebaseio.com`
-        });
+        db = admin.database();
+        console.log('✅ Firebase initialized');
+    } else {
+        console.log('⚠️ FIREBASE_CONFIG not found, running without database');
     }
-
-    db = admin.database();
-
-    console.log('✅ Firebase initialized');
+} catch (error) {
+    console.error('❌ Firebase initialization error:', error.message);
 }
 
 // دوال مساعدة
@@ -39,7 +41,6 @@ async function readData() {
         }
 
         const snapshot = await db.ref('gameData').once('value');
-
         return snapshot.val() || {
             currentGender: null,
             lastUpdated: null,
@@ -47,8 +48,7 @@ async function readData() {
         };
 
     } catch (error) {
-        console.error(error);
-
+        console.error('readData error:', error);
         return {
             currentGender: null,
             lastUpdated: null,
@@ -59,9 +59,11 @@ async function readData() {
 
 async function writeData(data) {
     try {
+        if (!db) return false;
         await db.ref('gameData').set(data);
         return true;
     } catch (error) {
+        console.error('writeData error:', error);
         return false;
     }
 }
@@ -87,7 +89,7 @@ app.post('/api/set-result', async (req, res) => {
     if (await writeData(data)) {
         res.json({ success: true, gender: gender });
     } else {
-        res.status(500).json({ error: 'Failed' });
+        res.status(500).json({ error: 'Failed to save to database' });
     }
 });
 
@@ -96,12 +98,11 @@ app.post('/api/reset', async (req, res) => {
     if (await writeData(data)) {
         res.json({ success: true });
     } else {
-        res.status(500).json({ error: 'Failed' });
+        res.status(500).json({ error: 'Failed to reset' });
     }
 });
 
 // Serve static files
-const path = require('path');
 app.use(express.static(path.join(__dirname, '../public')));
 
 app.get('/', (req, res) => {
@@ -112,6 +113,5 @@ app.get('/dashboard', (req, res) => {
     res.sendFile(path.join(__dirname, '../public', 'dashboard.html'));
 });
 
-module.exports = (req, res) => {
-    app(req, res);
-};
+// Vercel requires this export
+module.exports = app;
